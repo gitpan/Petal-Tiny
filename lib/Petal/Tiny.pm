@@ -159,14 +159,19 @@ sub tal_on_error {
     my $stuff   = delete $node->{"$TAL:on-error"};
     defined $stuff or return tal_define ($node, $xml, $end, $context);
     my $nodeCopy = { %{$node} };
-    eval { return tal_define ($node, $xml, $end, $context) };
-    my @result = ();
-    for my $k (keys %{$nodeCopy}) { delete $nodeCopy->{$k} if $k =~ /^$TAL:/ }
-    delete $nodeCopy->{_close} and $end = "</$nodeCopy->{_tag}>"; # deal with self closing tags
-    push @result, node2tag ($nodeCopy);
-    push @result, resolve_expression ($stuff, $context);
-    push @result, $end;
-    return join '', @result;
+    my $res = eval { tal_define ($node, $xml, $end, $context) };
+    if ($@) {
+        my @result = ();
+        for my $k (keys %{$nodeCopy}) { delete $nodeCopy->{$k} if $k =~ /^$TAL:/ }
+        delete $nodeCopy->{_close} and $end = "</$nodeCopy->{_tag}>"; # deal with self closing tags
+        push @result, node2tag ($nodeCopy);
+        push @result, resolve_expression ($stuff, $context);
+        push @result, $end;
+        return join '', @result;
+    }
+    else {
+        return $res;
+    }
 }
 
 

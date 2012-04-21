@@ -16,5 +16,6 @@ t/23-tal-content-and-replace.t
 t/24-attributes.t
 t/25-omit-tag.t
 t/26-on-error.t
+t/C20120422.t
 t/data/00.xml
 META.yml                                 Module meta-data (added by MakeMaker)

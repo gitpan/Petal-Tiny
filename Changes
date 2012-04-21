@@ -1,5 +1,8 @@
 Revision history for Perl extension Petal::Tiny
 
-1.0	Sat Apr 21 23:11:28 MUT 2012
+1.01	Sun Apr 22 01:13:01 MUT 2012
+	- fixed tal:on-error bug
+
+1.00	Sat Apr 21 23:11:28 MUT 2012
 	- original release
 
