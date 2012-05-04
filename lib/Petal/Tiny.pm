@@ -47,7 +47,7 @@ our $VARIABLE_RE_BRACKETS = qq |(?<!\$)\\{.*?(?<!\\\\)\\}|;
 our $STRING_TOKEN_RE      = "($VARIABLE_RE_SIMPLE|$VARIABLE_RE_BRACKETS)";
 
 our $TAL = 'petal';
-
+our $VERSION = 1.03;
 
 sub new {
     my $class = shift;
@@ -111,7 +111,7 @@ sub makeitso {
         push @head, $elem;
     }
     my @res = ();
-    push @res, @head                            if (@head);
+    push @res, @head                             if (@head);
     push @res, makeitso_block (\@body, $context) if (@body);
     push @res, makeitso (\@tail, $context)       if (@tail);
     return join '', @res;
@@ -649,7 +649,7 @@ over-engineered.
 
 With L<Petal::Tiny> you pass a single argument, which is either a file name or
 XML data, and that's it. If the stuff which you pass contains < or a new line,
-it's considered XML data. Otherwise it's treated as a file name.  `
+it's considered XML data. Otherwise it's treated as a file name.
 
 
 =head1 TAL syntax
@@ -681,9 +681,7 @@ set the petal namespace in your HTML or XML document as follows:
 
 =head1 METAL macros
 
-UNSUPPORTED. L<Petal::Tiny> has no macro implementation.  I never use them, I
-find their syntax confusing, and I'd have to rename the module to
-Petal::NotSoTiny if I implemented macro support :)
+UNSUPPORTED.
 
 
 =head1 EXPRESSIONS AND MODIFIERS
@@ -824,8 +822,7 @@ I'm pretty sure you can work this one out by yourself :-)
 
 =head2 set:variable_name EXPRESSION
 
-UNSUPPORTED. It's a silly modifier and is redundant with the tal:define
-command.
+UNSUPPORTED.
 
 
 =head2 string:STRING_EXPRESSION
@@ -882,12 +879,12 @@ trailing colon.
 
 =head2 Petal::Hash caching and fresh keyword 
 
-UNSUPPORTED. L<Petal::Tiny> does no caching, thus it's pointless.
+UNSUPPORTED. L<Petal::Tiny> does no caching.
 
 
 =head2 TOY FUNCTIONS (For debugging or if you're curious)
 
-UNSUPPORTED. Besides, you will find thatL<Petal::Tiny> error reporting and
+UNSUPPORTED. Besides, you will find thatL <Petal::Tiny> error reporting and
 handling is a lot better than L<Petal>'s, leading to less debugging
 requirement. So long as you feed L<Petal::Tiny> with valid XML, you'll be fine.
 
@@ -897,7 +894,7 @@ requirement. So long as you feed L<Petal::Tiny> with valid XML, you'll be fine.
 UNSUPPORTED. See L<Petal::Deprecated>.
 
 
-=head2 L<Petal> vs L<Petal::Tiny> internals
+=head2 Performance considerations
 
 The cycle of a L<Petal> template is the following:
 
@@ -917,12 +914,19 @@ the same template will be reduced to step 8 until the source template changes.
 The cycle of a L<Petal::Tiny> template is the following:
 
     1. Read the source XML template
-    2. Tokenize it using a huge XML
+    2. Tokenize it using a big regex
     3. Recursively process the tokens
 
-This means that L<Petal::Tiny> is probaby gonna be blown to bits by Petal
-performance-wise if you're running a persistent environment. But if you're not,
-then L<Petal::Tiny> will really shine. Use whatever suits you.
+Benchmarking a simple piece of basic XML shows that Petal is much faster when
+running its caches, but much slower otherwise:
+
+
+Benchmark: timing 1000 iterations of Petal (disk cache), Petal (memory cache), Petal (no cache), Petal::Tiny...
+Petal (disk cache):  3 wallclock secs ( 2.50 usr +  0.10 sys =  2.60 CPU) @ 384.62/s (n=1000)
+Petal (memory cache):  2 wallclock secs ( 1.76 usr +  0.05 sys =  1.81 CPU) @ 552.49/s (n=1000)
+Petal (no cache): 18 wallclock secs (17.85 usr +  0.09 sys = 17.94 CPU) @ 55.74/s (n=1000)
+Petal::Tiny:  6 wallclock secs ( 6.57 usr +  0.04 sys =  6.61 CPU) @ 151.29/s (n=1000)
+
 
 
 =head1 EXPORTS

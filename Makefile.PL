@@ -4,5 +4,5 @@ use ExtUtils::MakeMaker;
 # the contents of the Makefile that is written.
 WriteMakefile(
     NAME    => 'Petal::Tiny',
-    VERSION => '1.01',
+    VERSION_FROM => './lib/Petal/Tiny.pm',
 );
