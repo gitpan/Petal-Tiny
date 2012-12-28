@@ -21,6 +21,11 @@ like ($output, qr/\<xml\>bar\<\/xml\>/, 'some content');
 like ($output, qr/\<xml\>\<\/xml\>/, 'empty content');
 unlike ($output, qr/replaced/, 'replaced tag is not there');
 like ($output, qr/CONTENT/, 'but content is');
+
+my $test = Petal::Tiny->new (qq|<xml petal:content="data">foo</xml>|);
+my $res  = $test->process (data => '$one $two', one => 'foo', two => 'bar');
+unlike ($res, qr/foo/, 'content is not interpolated');
+
 Test::More::done_testing();
 
 __DATA__

@@ -47,7 +47,10 @@ our $VARIABLE_RE_BRACKETS = qq |(?<!\$)\\{.*?(?<!\\\\)\\}|;
 our $STRING_TOKEN_RE      = "($VARIABLE_RE_SIMPLE|$VARIABLE_RE_BRACKETS)";
 
 our $TAL = 'petal';
-our $VERSION = 1.03;
+our $VERSION = 1.04;
+
+our $STOP_RECURSE = 0;
+
 
 sub new {
     my $class = shift;
@@ -240,6 +243,10 @@ sub tal_content {
     my $res = resolve_expression ($stuff, $context);
     $xml    = defined $res ? [ $res ] : [];
     delete $node->{_close} and $end = "</$node->{_tag}>"; # deal with self closing tags
+    
+    # set the stop recurse flag so that if content contains $foo and $bar,
+    # those aren't interpolated as variables.
+    local ( $STOP_RECURSE ) = ( 1 );
     return tal_replace ($node, $xml, $end, $context);
 }
 
@@ -277,7 +284,7 @@ sub tal_omit_tag {
     my @result = ();
     push @result, node2tag ($node) unless ($omit);
     if ($end) {
-        push @result, makeitso ($xml, $context);
+        push @result, do { $STOP_RECURSE ? join '', @{$xml} : makeitso ($xml, $context) };
         push @result, $end unless ($omit);
     }
     return join '', @result;
