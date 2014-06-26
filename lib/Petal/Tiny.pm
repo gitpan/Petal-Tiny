@@ -1,4 +1,5 @@
 package Petal::Tiny;
+$Petal::Tiny::VERSION = '1.05';
 use warnings;
 use strict;
 use Carp;
@@ -47,7 +48,6 @@ our $VARIABLE_RE_BRACKETS = qq |(?<!\$)\\{.*?(?<!\\\\)\\}|;
 our $STRING_TOKEN_RE      = "($VARIABLE_RE_SIMPLE|$VARIABLE_RE_BRACKETS)";
 
 our $TAL = 'petal';
-our $VERSION = 1.04;
 
 our $STOP_RECURSE = 0;
 
@@ -269,8 +269,19 @@ sub tal_attributes {
     for my $att (split /;(?!;)/, $attributes) {
         $att = trim ($att);
         my ($symbol, $expression) = split /\s+/, $att, 2;
-        $node->{$symbol} = resolve_expression ($expression, $context);
-        delete $node->{$symbol} unless (defined $node->{$symbol});
+        my $add = ($symbol =~ s/^\+//);
+        my $new = resolve_expression ($expression, $context);
+        if (defined $new) {
+            if ($add) {
+                my $old = $node->{$symbol};
+                $old = "" unless defined $old;
+                $new = $old . $new;
+            }
+            $node->{$symbol} = $new;
+        }
+        else {
+            delete $node->{$symbol} unless $add;
+        }
     }
     return tal_omit_tag ($node, $xml, $end, $context);
 }
@@ -317,35 +328,60 @@ sub resolve {
       return $expr;
     };
     $expr =~ s/\r/ /g;
-    $expr =~ s/\r/ /g;
     my ($what, @args) = split /\s+/, $expr;
     defined $what or return;
     
     my (@path)   = split /\//, $what;
     my @resolved = ();
     my $obj      = $context;
+    @args        = map { resolve ($_, $context) } @args;
     while (@path) {
         my $attribute_or_method = shift @path;
         push @resolved, $attribute_or_method;
         my $resolved = join '/', @resolved;
 	$obj or confess "cannot fetch $what, because $resolved is undefined";
         ref $obj or confess "cannot fetch $what, because $resolved is not a reference";
-        ref $obj eq 'ARRAY' and do {
-            not @path and @args and confess "cannot resolve expression $expr";
+
+        if (ref $obj eq 'ARRAY') {
             $obj = $obj->[$attribute_or_method];
-            next;
-        };
-        ref $obj eq 'HASH' and do {
-            not @path and @args and confess "cannot resolve expression $expr";
-            $obj = $obj->{$attribute_or_method};            
-            next;
-        };
-        $obj->can ($attribute_or_method) and do {
-            if   (@path) { $obj = $obj->$attribute_or_method() }
-            else         { $obj = $obj->$attribute_or_method( map { resolve ($_, $context) } @args) }
-            next;
-        };
-        $obj = $obj->{$attribute_or_method};
+        }
+        elsif (ref $obj eq 'HASH') {
+            $obj = $obj->{$attribute_or_method};
+        }
+        elsif ($obj->can ($attribute_or_method)) {
+            if (@path) {
+                $obj = $obj->$attribute_or_method();
+            }
+            else {
+                $obj = $obj->$attribute_or_method(@args);
+                @args = ();
+            }
+        }
+
+        # now, check if what we found was a code-ref
+        if (ref $obj eq 'CODE') {
+            if (@path) {
+                $obj = $obj->();
+            }
+            else {
+                $obj = $obj->(@args);
+                @args = ();
+            }
+        }
+
+        # if we're done with @path and there's a single arg, use it to look up in array/hash
+        if (not @path and @args == 1) {
+            if (ref $obj eq 'ARRAY') {
+                $obj = $obj->[ $args[0] ];
+                last;
+            }
+            elsif (ref $obj eq 'HASH') {
+                $obj = $obj->{ $args[0] };
+                last;
+            }
+        }
+
+        not @path and @args and confess "cannot resolve expression $expr";
     }
     return $obj;
 }
@@ -661,8 +697,10 @@ it's considered XML data. Otherwise it's treated as a file name.
 
 =head1 TAL syntax
 
-Go read L<http://www.zope.org/Wikis/DevSite/Projects/ZPT/TAL>. L<Petal::Tiny>
-tries to comply with the TAL spec a lot more than L<Petal> did.
+Go read L<https://github.com/zopefoundation/zpt-docs>
+(http://www.zope.org/Wikis/DevSite/Projects/ZPT/TAL> is
+dead). L<Petal::Tiny> tries to comply with the TAL spec a lot more
+than L<Petal> did.
 
 Currently it implements all operations, i.e. define, condition, repeat,
 content, replace, attributes, omit-tag and even on-error (which allows for much
@@ -684,6 +722,23 @@ TRAP: Don't forget that the default prefix is C<petal:> NOT C<tal:>, until you
 set the petal namespace in your HTML or XML document as follows:
 
     <html xmlns:tal="http://purl.org/petal/1.0/">
+
+=head2 Modifications to TAL
+
+=head3 '+' in attributes
+
+tal:attributes always overrides the content of an attribute, but
+occasionally you want to concatenate the new string to the existing
+string. Prefixing the attribute name with '+' allows you do to this:
+
+ <div class="foo " tal:attribute="+class bar"/>
+
+outputs
+
+ <div class="foo bar"/>
+
+With +, if the expression returns undef the exisiting attribute is
+left unchanged. Without +, it's still deleted.
 
 
 =head1 METAL macros
@@ -743,6 +798,16 @@ Example
   -->
   <span tal:replace="some_hash/a_key">Hello, World</span>
 
+Petal expression
+
+  some_hash a_variable
+
+Example
+
+  <!--? Replaces Hello, World with the contents
+        of $hashref->{'some_hash'}->{'a_key'}
+  -->
+  <span tal:define="a_variable --a_key" tal:replace="some_hash a_variable">Hello, World</span>
 
 Perl expression
 
@@ -759,6 +824,17 @@ Example
   -->
   <span tal:replace="some_array/12">Hello, World</span>
 
+Petal expression
+
+  some_array a_variable
+
+Example
+
+  <!--? Replaces Hello, World with the contents
+        of $hashref->{'some_array'}->[12]
+  -->
+  <span tal:define="a_variable 12" tal:replace="some_array a_variable">Hello, World</span>
+
 Note: You're more likely to want to loop through arrays:
 
   <!--? Loops trough the array and displays each values -->
@@ -767,6 +843,41 @@ Note: You're more likely to want to loop through arrays:
         tal:content="value">Hello, World</li>
   </ul>
 
+If you want to loop through a hash, supply both the hash, as well as its relevant keys in $hashref, e.g.:
+
+  some_keys => [ "foo", "bar" ],
+  some_hash => {
+    foo => "fooval",
+    bar => "barval",
+  }
+
+  <input type="text" tal:repeat="a_key some_keys" tal:attributes="name a_key; value some_hash a_key" />
+
+which will generate the HTML
+
+  <input type="text" name="foo" value="fooval" />
+  <input type="text" name="bar" value="barval" />
+
+=head2 calling anonymous functions
+
+If $hashref->{'some_function'} = sub { ... }.
+
+Perl expressions
+
+  1. $hashref->{'some_function'}->();
+  2. $hashref->{'some_function'}->('foo', 'bar');
+  3. $hashref->{'some_function'}->($hashref->{'some_variable'});
+
+L<Petal::Tiny expressions>
+
+  1. some_object/some_function
+  2. some_object/some_function --foo --bar
+  3. some_object/some_function some_variable
+
+TRAP: If the last item in the path is a function or method which
+returns a function, it is the path-member who gets the argument-list;
+there's no way to predict the future and giving the argument-list to
+the function.
 
 =head2 accessing object methods
 
@@ -774,7 +885,7 @@ Perl expressions
 
   1. $hashref->{'some_object'}->some_method();
   2. $hashref->{'some_object'}->some_method ('foo', 'bar');
-  3. $hashref->{'some_object'}->some_method ($hashref->{'some_variable'})  
+  3. $hashref->{'some_object'}->some_method ($hashref->{'some_variable'});
 
 L<Petal::Tiny expressions>
 
@@ -798,11 +909,12 @@ Perl expression
   $hashref->{'some_object'}
           ->some_method()
           ->{'key2'}
+          ->{'some_function'}->()
           ->some_other_method ( 'foo', $hash->{bar} );
 
 Petal expression
 
-  some_object/some_method/key2/some_other_method --foo bar
+  some_object/some_method/key2/some_function/some_other_method --foo bar
 
 
 =head2 true:EXPRESSION
@@ -884,7 +996,7 @@ Note that this is a language I<keyword>, not a modifier. It does not use a
 trailing colon.
 
 
-=head2 Petal::Hash caching and fresh keyword 
+=head2 Petal::Hash caching and fresh keyword
 
 UNSUPPORTED. L<Petal::Tiny> does no caching.
 
@@ -927,12 +1039,11 @@ The cycle of a L<Petal::Tiny> template is the following:
 Benchmarking a simple piece of basic XML shows that Petal is much faster when
 running its caches, but much slower otherwise:
 
-
-Benchmark: timing 1000 iterations of Petal (disk cache), Petal (memory cache), Petal (no cache), Petal::Tiny...
-Petal (disk cache):  3 wallclock secs ( 2.50 usr +  0.10 sys =  2.60 CPU) @ 384.62/s (n=1000)
-Petal (memory cache):  2 wallclock secs ( 1.76 usr +  0.05 sys =  1.81 CPU) @ 552.49/s (n=1000)
-Petal (no cache): 18 wallclock secs (17.85 usr +  0.09 sys = 17.94 CPU) @ 55.74/s (n=1000)
-Petal::Tiny:  6 wallclock secs ( 6.57 usr +  0.04 sys =  6.61 CPU) @ 151.29/s (n=1000)
+ Benchmark: timing 1000 iterations of Petal (disk cache), Petal (memory cache), Petal (no cache), Petal::Tiny...
+ Petal (disk cache):  3 wallclock secs ( 2.50 usr +  0.10 sys =  2.60 CPU) @ 384.62/s (n=1000)
+ Petal (memory cache):  2 wallclock secs ( 1.76 usr +  0.05 sys =  1.81 CPU) @ 552.49/s (n=1000)
+ Petal (no cache): 18 wallclock secs (17.85 usr +  0.09 sys = 17.94 CPU) @ 55.74/s (n=1000)
+ Petal::Tiny:  6 wallclock secs ( 6.57 usr +  0.04 sys =  6.61 CPU) @ 151.29/s (n=1000)
 
 
 
@@ -940,17 +1051,27 @@ Petal::Tiny:  6 wallclock secs ( 6.57 usr +  0.04 sys =  6.61 CPU) @ 151.29/s (n
 
 None.
 
-
 =head1 BUGS
 
-If you find any, please drop me an email. Patches are always welcome.
+If you find any, please drop me an email or pull request on github. Patches are always welcome.
 
+=head1 SOURCE AVAILABILITY
+
+This source is on Github:
+
+    https://github.com/lbalker/petal-tiny
+
+=head1 AUTHOR
+
+Current maintainer 1.05+: Lars Balker lars@balker.dk
+
+Original author: Jean-Michel Hiver - jhiver (at) gmail (dot) com
 
 =head1 SEE ALSO
 
-L<Petal>, L<Template::TAL>
+L<Petal>, L<Template::TAL>, L<Mojolicious::Plugin::PetalTinyRenderer>
 
-Jean-Michel Hiver - jhiver (at) gmail (dot) com
+=head1 LICENSE
 
 This module free software and is distributed under the same license as Perl
 itself. Use it at your own risk.

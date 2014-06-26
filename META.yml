@@ -1,20 +1,18 @@
---- #YAML:1.0
-name:               Petal-Tiny
-version:            1.04
-abstract:           ~
-author:  []
-license:            unknown
-distribution_type:  module
+---
+abstract: 'super light TAL for Perl!'
+author:
+  - 'Lars Balker <lars@balker.dk>'
+build_requires: {}
 configure_requires:
-    ExtUtils::MakeMaker:  0
-build_requires:
-    ExtUtils::MakeMaker:  0
-requires:  {}
-no_index:
-    directory:
-        - t
-        - inc
-generated_by:       ExtUtils::MakeMaker version 6.56
+  ExtUtils::MakeMaker: '6.30'
+dynamic_config: 0
+generated_by: 'Dist::Zilla version 5.019, CPAN::Meta::Converter version 2.140640'
+license: perl
 meta-spec:
-    url:      http://module-build.sourceforge.net/META-spec-v1.4.html
-    version:  1.4
+  url: http://module-build.sourceforge.net/META-spec-v1.4.html
+  version: '1.4'
+name: Petal-Tiny
+resources:
+  homepage: https://github.com/lbalker/petal-tiny
+  repository: https://github.com/lbalker/petal-tiny.git
+version: '1.05'
