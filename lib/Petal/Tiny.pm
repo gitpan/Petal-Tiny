@@ -1,5 +1,5 @@
 package Petal::Tiny;
-$Petal::Tiny::VERSION = '1.05';
+$Petal::Tiny::VERSION = '1.06';
 use warnings;
 use strict;
 use Carp;
