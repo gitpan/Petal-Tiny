@@ -1,5 +1,5 @@
 package Petal::Tiny;
-$Petal::Tiny::VERSION = '1.07';
+$Petal::Tiny::VERSION = '1.08';
 use warnings;
 use strict;
 use Carp;
@@ -526,7 +526,7 @@ sub extract_attributes {
 
 sub xmlencode {
     my $string = shift;
-    $string or return $string;
+    return $string if !$string or ref $string;
     $string =~ s/&/&amp;/g;
     $string =~ s/</&lt;/g;
     $string =~ s/>/&gt;/g;

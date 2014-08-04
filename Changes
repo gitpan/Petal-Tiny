@@ -1,5 +1,12 @@
 Revision history for Perl extension Petal::Tiny
 
+1.08      2014-08-04 13:28:23+02:00 Europe/Copenhagen
+        - never try to xmlencode references!
+          (Actual issue for Mojolicious::Plugin::PetalTinyRenderer,
+          since Mojo::Collection stringifies, so if a Mojo::Collection
+          contained a string that needed encoding, it would turn into
+          a string...)
+
 1.07      2014-07-31 16:04:13+02:00 Europe/Copenhagen
         - refactored expression internals to pass around $self, to
           make it possible to subclass Petal::Tiny.
