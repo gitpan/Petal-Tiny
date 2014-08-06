@@ -15,4 +15,4 @@ name: Petal-Tiny
 resources:
   homepage: https://github.com/lbalker/petal-tiny
   repository: https://github.com/lbalker/petal-tiny.git
-version: '1.08'
+version: '1.09'
