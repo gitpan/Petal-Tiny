@@ -4,9 +4,9 @@ author:
   - 'Lars Balker <lars@balker.dk>'
 build_requires: {}
 configure_requires:
-  ExtUtils::MakeMaker: '6.30'
+  ExtUtils::MakeMaker: '0'
 dynamic_config: 0
-generated_by: 'Dist::Zilla version 5.019, CPAN::Meta::Converter version 2.140640'
+generated_by: 'Dist::Zilla version 5.020, CPAN::Meta::Converter version 2.142060'
 license: perl
 meta-spec:
   url: http://module-build.sourceforge.net/META-spec-v1.4.html
@@ -15,4 +15,4 @@ name: Petal-Tiny
 resources:
   homepage: https://github.com/lbalker/petal-tiny
   repository: https://github.com/lbalker/petal-tiny.git
-version: '1.09'
+version: '1.10'
