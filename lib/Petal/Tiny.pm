@@ -1,5 +1,5 @@
 package Petal::Tiny;
-$Petal::Tiny::VERSION = '1.11';
+$Petal::Tiny::VERSION = '1.12';
 use warnings;
 use strict;
 use Carp;
@@ -123,9 +123,18 @@ sub makeitso {
 
 sub _interpolate_dollar {
     my ($self, $context, $string, $method) = @_;
+
+    my $subst = sub {
+        my $what = shift;
+        my $res = $self->$method($what, $context);
+        return $res if defined $res;
+        carp "'$what' in \$-interpolation resolved to undef";
+        return "";
+    };
+
     if ($string =~ /\$/) {
-        $string =~ s/(?<!\$) \$\{  ( [^{}]+           ) \}  / $self->$method($1, $context) /xegi;
-        $string =~ s/(?<!\$) \$\{? ( [a-z0-9-\/\:\_]+ ) \}? / $self->$method($1, $context) /xegi;
+        $string =~ s/(?<!\$) \$\{  ( [^{}]+           ) \}  / $subst->($1) /xegi;
+        $string =~ s/(?<!\$) \$\{? ( [a-z0-9-\/\:\_]+ ) \}? / $subst->($1) /xegi;
         $string =~ s/\$\$/\$/g;
     }
     return $string;
