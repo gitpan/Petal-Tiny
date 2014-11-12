@@ -1,5 +1,5 @@
 package Petal::Tiny;
-$Petal::Tiny::VERSION = '1.12';
+$Petal::Tiny::VERSION = '1.13';
 use warnings;
 use strict;
 use Carp;
@@ -223,7 +223,7 @@ sub tal_condition {
     my $condition = trim ($stuff);
     for my $cond (split /;(?!;)/, $condition) {
         $cond = trim($cond);
-        $self->resolve_expression($condition, $context) or return '';
+        $self->resolve_expression($cond, $context) or return '';
     }
     return $self->tal_repeat($node, $xml, $end, $context);
 }
